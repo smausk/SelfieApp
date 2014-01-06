@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Selfie</string>
+    <string name="share">Share</string>
+    <string name="send_to">Send to&#8230;</string>
+    <string name="button_capture">Capture Image</string>
+</resources>
