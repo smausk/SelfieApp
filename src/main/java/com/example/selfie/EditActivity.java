@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class EditActivity extends Activity {
 
@@ -35,7 +36,7 @@ public class EditActivity extends Activity {
     private static final float HAT_SCALE_CONSTANT = 1.5f;
     private static final float HAT_OFFSET = 2.5f;
     private static final float TIE_SCALE_CONSTANT = 1f;
-    private static final float TIE_OFFSET = 2.5f;
+    private static final float TIE_OFFSET = 2.2f;
 
     private int NUMBER_OF_FACE_DETECTED;
 
@@ -43,7 +44,10 @@ public class EditActivity extends Activity {
 
     private Bitmap mBitmap;
     private Bitmap mSticker;
+    private Bitmap mOriginalBitmap;
     private ImageView mImageView;
+    private ImageButton mUndoButton;
+    private ArrayList<StickerPointF> mStickersAdded = new ArrayList<StickerPointF>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -86,6 +90,29 @@ public class EditActivity extends Activity {
         setupButton(R.id.imageButton7, R.drawable.design_music);
         setupButton(R.id.imageButton8, R.drawable.design_music2);
         setupButton(R.id.imageButton9, R.drawable.design_music3);
+
+        // Setup the undo button
+        mUndoButton = (ImageButton) findViewById(R.id.undo_button);
+        mUndoButton.setOnClickListener(
+                new Button.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mStickersAdded.remove(mStickersAdded.size() - 1);
+                        mBitmap = mOriginalBitmap.copy(mOriginalBitmap.getConfig(), true);
+                        mImageView.setImageDrawable(new BitmapDrawable(mBitmap));
+
+                        for (final StickerPointF stickerPointF : mStickersAdded) {
+                            drawStickerOnBitmap(stickerPointF.sticker,
+                                    stickerPointF.x, stickerPointF.y);
+                        }
+
+                        if (mStickersAdded.size() == 0 ) {
+                            mUndoButton.setVisibility(View.INVISIBLE);
+                        }
+
+                        mImageView.invalidate();
+                    }
+                });
     }
 
     @Override
@@ -103,16 +130,12 @@ public class EditActivity extends Activity {
 
                                 // If the user has selected a sticker, draw it on the picture
                                 if (mSticker != null) {
-                                    Paint paint = new Paint();
-                                    paint.setAntiAlias(true);
-                                    Canvas canvas = new Canvas(mBitmap);
-
-                                    x = (x / mImageView.getWidth()) * canvas.getWidth();
-                                    y = (y / mImageView.getHeight()) * canvas.getHeight();
-
-                                    canvas.drawBitmap(mSticker, x - mSticker.getWidth() / 2,
-                                            y - mSticker.getHeight() / 2, paint);
-                                    mImageView.invalidate();
+                                    if (mStickersAdded.size() == 0) {
+                                        // Save the old bitmap in case user decides to undo
+                                        mOriginalBitmap = mBitmap.copy(mBitmap.getConfig(), true);
+                                    }
+                                    drawStickerOnBitmap(mSticker, x, y);
+                                    mStickersAdded.add(new StickerPointF(mSticker, x, y));
                                 }
                                 break;
                             default:
@@ -162,6 +185,24 @@ public class EditActivity extends Activity {
     public void onBackPressed() {
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
+    }
+
+    /**
+     * Draws sticker at specific point on the image
+     */
+    private void drawStickerOnBitmap(Bitmap sticker, float x, float y) {
+        Paint paint = new Paint();
+        paint.setAntiAlias(true);
+
+        Canvas canvas = new Canvas(mBitmap);
+
+        x = (x / mImageView.getWidth()) * canvas.getWidth();
+        y = (y / mImageView.getHeight()) * canvas.getHeight();
+
+        canvas.drawBitmap(sticker, x - sticker.getWidth() / 2,
+                y - sticker.getHeight() / 2, paint);
+        mImageView.invalidate();
+        mUndoButton.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -226,6 +267,18 @@ public class EditActivity extends Activity {
             float tieTop = midPoint.y + TIE_OFFSET * face.eyesDistance();
             canvas.drawBitmap(tie, midPoint.x - tie.getWidth() / 2,
                     tieTop, paint);
+        }
+    }
+
+    private class StickerPointF {
+        public Bitmap sticker;
+        public float x;
+        public float y;
+
+        private StickerPointF(Bitmap sticker, float x, float y){
+            this.x = x;
+            this.y = y;
+            this.sticker = sticker;
         }
     }
 }

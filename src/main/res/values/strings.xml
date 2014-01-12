@@ -4,4 +4,5 @@
     <string name="share">Share</string>
     <string name="send_to">Send to&#8230;</string>
     <string name="button_capture">Capture Image</string>
+    <string name="button_undo">Undo Sticker</string>
 </resources>
